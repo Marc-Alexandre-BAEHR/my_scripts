@@ -72,8 +72,12 @@ def display_timer(start_time):
 
         mil = str(mil)
         mil = mil[2:5]
-
-        print(f"▢➜  [deep_sky_blue1]{sec}[grey46]s[/grey46]{mil}[grey46]ms[/grey46][/deep_sky_blue1]", end="\r")
+        if sec < 60:
+            print(f"▢➜  [deep_sky_blue1]{sec}[grey46]s[/grey46]{mil}[grey46]ms[/grey46][/deep_sky_blue1]", end="\r")
+        else:
+            mit = sec//60
+            nsc = sec%60
+            print(f"▢➜  [deep_sky_blue1]{mit}[grey46]:[/grey46]{nsc}[grey46]s[/grey46]{mil}[grey46]ms[/grey46][/deep_sky_blue1]", end="\r")
         # time.sleep(0.065)
 
 
