@@ -15,6 +15,12 @@ git add . > /dev/null 2>&1
 echo "📝 Création du commit avec le message : '$commit'"
 git commit -m "$commit" > /dev/null 2>&1
 
+read -p "Voulez-vous envoyer les modifications vers le dépôt distant ? (y/n) : " confirm_push
+if [[ "$confirm_push" != "y" && "$confirm_push" != "Y" ]]; then
+    echo "❌ Push annulé par l'utilisateur."
+    exit 0
+fi
+
 echo "🚀 Envoi des modifications vers le dépôt distant..."
 git push > /dev/null 2>&1
 
