@@ -7,7 +7,13 @@ else
     commit="$1"
 fi
 
+echo "📂 Ajout des fichiers au suivi Git..."
+git add . > /dev/null 2>&1
 
-git add .
-git commit -m "$commit"
-git push
+echo "📝 Création du commit avec le message : '$commit'"
+git commit -m "$commit" > /dev/null 2>&1
+
+echo "🚀 Envoi des modifications vers le dépôt distant..."
+git push > /dev/null 2>&1
+
+echo "✅ Opération terminée avec succès !"
