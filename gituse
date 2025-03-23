@@ -1,6 +1,12 @@
 #!/usr/bin/bash
 
-commit="$1"
+if [ -z "$1" ]; then
+    echo "⚠️  Aucun message de commit fourni."
+    read -p "Veuillez entrer un message de commit : " commit
+else
+    commit="$1"
+fi
+
 
 git add .
 git commit -m "$commit"
