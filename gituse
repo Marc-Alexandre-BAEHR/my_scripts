@@ -18,9 +18,7 @@ git commit -m "$commit" > /dev/null 2>&1
 echo "🚀 Envoi des modifications vers le dépôt distant..."
 git push > /dev/null 2>&1
 
-# Vérifie si l'URL existe
 if [ -n "$repo_url" ]; then
-    # Si l'URL est en format SSH, la convertir en HTTPS
     if [[ "$repo_url" == git@* ]]; then
         repo_url=$(echo "$repo_url" | sed -E 's|git@(.*):|https://\1/|' | sed 's|\.git$||')
     fi
