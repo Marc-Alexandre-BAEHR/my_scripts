@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+REPO_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "#!/usr/bin/python3" > "$REPO_PATH/scripts_path.py"
+echo "PATH=\"$REPO_PATH\"" >> "$REPO_PATH/scripts_path.py"
+
+cp -r "$REPO_PATH/scripts_path.py" "$REPO_PATH/mouli-folder/"
+cp -r "$REPO_PATH/scripts_path.py" "$REPO_PATH/coding-style/"
