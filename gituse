@@ -1,28 +1,39 @@
 #!/usr/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+OFF='\033[0m'
+
+
 repo_url=$(git config --get remote.origin.url)
 
-if [ -z "$1" ]; then
-    echo "⚠️  Aucun message de commit fourni."
-    read -p "Veuillez entrer un message de commit : " commit
-else
-    commit="$1"
-fi
+read -p "$(echo -e Veuillez entrer un ${MAGENTA}message de commit${OFF} :  )" commit
 
-echo "📂 Ajout des fichiers au suivi Git..."
 git add . > /dev/null 2>&1
 
-echo "📝 Création du commit avec le message : '$commit'"
-git commit -m "$commit" > /dev/null 2>&1
+echo -e "Listes des ${CYAN}fichiers modifiés${OFF} :"
+git diff --cached --name-only > .pushedfile
 
-echo "📄 Fichiers qui seront poussés :"
-git diff --cached --name-only
+while IFS= read -r line; do
+    echo "📄 $line"
+done < .pushedfile
 
-read -p "Voulez-vous envoyer les modifications vers le dépôt distant ? (y/n) : " confirm_push
+rm .pushedfile
+
+
+read -p "Confirmation? (y/n) : " confirm_push
 if [[ "$confirm_push" != "y" && "$confirm_push" != "Y" ]]; then
     echo "❌ Push annulé par l'utilisateur."
     exit 0
 fi
+
+echo "📝 Création du commit avec le message : '$commit'"
+git commit -m "$commit" > /dev/null 2>&1
 
 echo "🚀 Envoi des modifications vers le dépôt distant..."
 git push > /dev/null 2>&1
