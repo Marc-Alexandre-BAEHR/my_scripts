@@ -16,7 +16,7 @@ read -p "$(echo -e Veuillez entrer un ${MAGENTA}message de commit${OFF} :  )" co
 
 git add . > /dev/null 2>&1
 
-echo -e "Listes des ${CYAN}fichiers modifiés${OFF} :"
+echo -e "Fichiers modifiés :"
 git diff --cached --name-only > .pushedfile
 
 while IFS= read -r line; do
@@ -32,10 +32,10 @@ if [[ "$confirm_push" != "y" && "$confirm_push" != "Y" ]]; then
     exit 0
 fi
 
-echo "📝 Création du commit avec le message : '$commit'"
+echo -e "${CYAN}Création du commit avec le message : '${OFF}$commit${CYAN}'${OFF}"
 git commit -m "$commit" > /dev/null 2>&1
 
-echo "🚀 Envoi des modifications vers le dépôt distant..."
+echo -e "${MAGENTA}Envoi des modifications vers le dépôt distant...${OFF}"
 git push > /dev/null 2>&1
 
 if [ -n "$repo_url" ]; then
@@ -43,10 +43,10 @@ if [ -n "$repo_url" ]; then
         repo_url=$(echo "$repo_url" | sed -E 's|git@(.*):|https://\1/|' | sed 's|\.git$||')
     fi
 
-    echo "🌐 Ouverture du dépôt dans le navigateur : $repo_url"
+    echo -e "${BLUE}Ouverture du dépôt dans le navigateur :${OFF} $repo_url"
     xdg-open "$repo_url" > /dev/null 2>&1
 else
-    echo "❌ Impossible de récupérer l'URL du dépôt distant."
+    echo -e "${RED}Impossible de récupérer l'URL du dépôt distant.${OFF}"
 fi
 
-echo "✅ Opération terminée avec succès !"
+echo -e "${GREEN}Opération terminée avec succès !${OFF}"

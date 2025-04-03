@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "No arguments entered"
+    exit 1
+fi
+
+
+
+echo "$1" >> .gitignore
+sort -f .gitignore | uniq | LC_ALL=C sort -f -o .gitignore
+
+cat .gitignore

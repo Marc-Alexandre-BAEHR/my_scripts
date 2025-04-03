@@ -1,0 +1,58 @@
+#!/usr/bin/python3
+import sys
+
+slen = len(sys.argv)
+
+valid_separator = ["+", "-", "/", "x"]
+
+if slen < 3:
+    print(f"Not enough arguments")
+    sys.exit(1)
+
+separator = []
+numbers = []
+
+for i in range(1, len(sys.argv)):
+    if i % 2 != 0:
+        # print(f"added {sys.argv[i]} as number")
+        numbers.append(sys.argv[i])
+    else:
+        # print(f"added {sys.argv[i]} as sep")
+        separator.append(sys.argv[i])
+
+for sign in separator:
+    if sign not in valid_separator:
+        if sign == "calc":
+            print(f"* is not a valid instruction")
+        else:
+            print(f"{sign} is not a valid instruction")
+        print(f"Valid operations are:")
+        for key in valid_separator:
+            print(f"[{key}]", end=' ')
+        print()
+        sys.exit(2)
+
+for num in numbers:
+    try:
+        float(num)
+    except ValueError:
+        print(f"{num} isn't a valid number")
+        sys.exit(2)
+
+for i in range(len(numbers)):
+    numbers[i] = float(numbers[i])
+
+result = numbers[0]
+
+for i in range(len(numbers) - 1):
+    if separator[i] == '+':
+        result += numbers[i + 1]
+    if separator[i] == '-':
+        result -= numbers[i + 1]
+    if separator[i] == 'x':
+        result *= numbers[i + 1]
+    if separator[i] == '/':
+        result /= numbers[i + 1]
+
+print(result)
+

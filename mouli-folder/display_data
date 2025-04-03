@@ -5,6 +5,9 @@ import subprocess
 import sys
 import time
 import datetime
+import ast
+from datetime import timezone
+import pytz
 
 from scripts_path import PATH
 
@@ -16,6 +19,67 @@ LRD = '\033[1;31m'
 YEL = '\033[0;33m'
 BWH = '\033[1;37m'
 NC = '\033[0m'
+
+############################## GET DATA
+
+
+import data_finder
+import token_updater
+import json
+
+from scripts_path import PATH
+from send_discord import send_message, check_if_diff_from_last
+
+base_url = "https://api.epitest.eu/me"
+
+def get_percent(mouli):
+    passed = 0.0
+    total = 0.0
+
+    for result in mouli["results"]["skills"]:
+        #print("------- " + str(mouli["results"]["skills"][result]))
+        total  += int(mouli["results"]["skills"][result]["count"])
+        passed += int(mouli["results"]["skills"][result]["passed"])
+    if total <= 0:
+        return -1.0
+    return (passed / total) * 100.0
+
+def parse_data(mouli):
+    return f"{mouli["project"]["name"]}${get_percent(mouli)}${mouli["date"]}${mouli["results"]["prerequisites"]}${mouli["project"]}${mouli["results"]["skills"]}\n"
+
+def get_data():
+    token = data_finder.load_token()
+    data = data_finder.fetch_data(token, f"{base_url}/2024")
+
+    data.reverse()
+    with open(f"{PATH}/mouli-folder/mouli_data", "w") as file:
+        for mouli in data:
+            file.write(parse_data(mouli))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### mode
+
+opt_compact = 0
+opt_nb_repetition = -1
+opt_time_refreshing = 10
+
+
+
 
 
 def clear():
@@ -39,7 +103,7 @@ def print_switch_bar():
     switch_bar = ""
     for i in range(100):
         switch_bar += "-"
-    print(f"{LGY}▢{switch_bar:<100}▢")
+    print(f"{LGY}▢{switch_bar:<100}▢{NC}")
 
 
 def display_difference(diff_seconds):
@@ -67,7 +131,50 @@ def display_difference(diff_seconds):
     return 0
 
 
-def display_data_in_normal_print():
+def parse_test_data_from_string(data_string):
+
+    test_data = ast.literal_eval(data_string)
+    total_tests = 0
+    total_passed = 0
+
+    for stats in test_data.values():
+        total_tests += stats['count']
+        total_passed += stats['passed']
+
+    if (total_tests > 0) :
+        test_value = 100 / total_tests
+    else:
+        test_value = 0
+
+    return total_tests, total_passed, test_value
+
+
+def print_all_tests(data_string):
+
+    test_data = ast.literal_eval(data_string)
+
+
+    for stats in test_data:
+
+        col = LGY
+
+        passed = test_data[stats]["passed"]
+        count = test_data[stats]["count"]
+
+        percentage = 100* (passed/count)
+
+        if percentage == 100:
+            col = GRE
+        elif percentage > 30:
+            col = YEL
+        else:
+            col = RED
+
+        percentage = round(percentage, 2)
+
+        print(f"| {col}{stats:<50} {passed:>2}/{count:<2} {LGY}({col}{percentage:<5}{LGY})")
+
+def display_data_in_normal_print(old_lines):
 
 
     t = datetime.datetime.now()
@@ -76,19 +183,9 @@ def display_data_in_normal_print():
 
     biggest_project = get_highest_number()
     nb_project = 0
-
-    if biggest_project == 0:
-        print_switch_bar()
-        print("|")
-        print("|  Network Error")
-        print("|")
-        print_switch_bar()
-
-        sys.exit()
-    
-
     percent_total = 0    
     percent_average = 0    
+
 
 
     print_switch_bar()
@@ -96,6 +193,8 @@ def display_data_in_normal_print():
         
         lines = f.readlines()
         lines.reverse()
+        
+        check_if_diff_from_last(lines, old_lines)
 
         for line in lines:
 
@@ -122,32 +221,25 @@ def display_data_in_normal_print():
             sec = parts[2][-3:-1]
             requis = parts[3]
 
+            total_tests, total_passed, test_value = parse_test_data_from_string(parts[5])
 
             dd = int(parts[2][8:10])
             mm = int(parts[2][5:7])
             yy = int(parts[2][2:4])+2000
 
             datetime_str = f"{yy}-{mm}-{dd} {hour}:{mins}:{sec}"
-            datetime_obj = datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
-            mouli_timestmp = datetime_obj.timestamp()
+            utc_tz = pytz.timezone("UTC")
+            paris_tz = pytz.timezone("Europe/Paris")
+            datetime_obj_naive = datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+            datetime_obj_utc = utc_tz.localize(datetime_obj_naive)
+            datetime_obj = datetime_obj_utc.astimezone(paris_tz)
 
+            mouli_timestmp = datetime_obj.timestamp()
             now_timestmp = time.time()
             diff_stmp = now_timestmp - mouli_timestmp
-
-
-            if mouli_timestmp > 1730026800:
-                add_hour = 1
-                diff_stmp -= 3600
-            else:
-                add_hour = 2
-                diff_stmp -= 7200
-
-            hour += add_hour
-            if hour == 24:
-                hour = 0
-                dd += 1
-
             diff_time = display_difference(diff_stmp)
+
+            formatted_time = datetime_obj.strftime("%Hh%M.%S")
 
 
 
@@ -181,14 +273,14 @@ def display_data_in_normal_print():
             if requis == 0.0:
                 prerequis = f"⚫​ {RED}Ban. Func.{NC}"
 
-
-
-            
+            print(f"{LGY}|{NC}")
             print(f"{LGY}| ➜ {BWH}{project:<{biggest_project}}{LGY}", end='') 
-            print(f"👤 {percent_s:>7}", end='\t\t')
-            print(f"⌛ {hour:0}h{mins}.{sec}{LGY} on {dd}/{mm}/{yy} [{diff_time}]")
+            print(f"👤 {percent_s:<20}", end='\t')
+            print(f"⌛ {formatted_time}{LGY} on {dd}/{mm}/{yy} [{diff_time}]")
             print(f"|")
-            print(f"| {BWH}{prerequis}{LGY}{NC}")
+            print_all_tests(parts[5])
+            print(f"|")
+            print(f"| {BWH}{prerequis:<40}{LGY}{total_passed}/{total_tests} ({test_value:.2f}%){NC}")
             print(f"{LGY}[{color}{progress_bar:<100}{LGY}]", end='\n')
             print_switch_bar()
 
@@ -206,9 +298,196 @@ def display_data_in_normal_print():
         print(f"|")
 
         print(f"{LGY}°{NC}")
+    
+    return lines
+
+def display_data_compact(old_lines):
+
+    biggest_project = get_highest_number()
+    nb_project = 0
+
+    percent_total = 0    
+    percent_average = 0    
+
+    print_switch_bar()
+    with open(f"{PATH}/mouli-folder/mouli_data", "r") as f:
+        
+        lines = f.readlines()
+        lines.reverse()
+
+        check_if_diff_from_last(lines, old_lines)
+                            
+
+        for line in lines:
+            nb_project += 1
+
+            parts = line.split("$")
+
+            project = parts[0]
+
+            percent = float(parts[1][:-1])
+            percent_total += percent
+            percent = round(percent, 2)
+
+
+            if percent < 30:
+                percent_s = f"{RED}{str(percent)} %{NC}"
+            elif percent >= 75:
+                percent_s = f"{GRE}{str(percent)} %{NC}"
+            else:
+                percent_s = f"{YEL}{str(percent)} %{NC}"
+            
+            hour = int(parts[2][-9:-7])
+            mins = parts[2][-6:-4]
+            sec = parts[2][-3:-1]
+            requis = parts[3]
+
+            total_tests, total_passed, test_value = parse_test_data_from_string(parts[5])
+
+            dd = int(parts[2][8:10])
+            mm = int(parts[2][5:7])
+            yy = int(parts[2][2:4])+2000
+
+            datetime_str = f"{yy}-{mm}-{dd} {hour}:{mins}:{sec}"
+            datetime_obj = datetime.datetime.now(timezone.utc).strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+            mouli_timestmp = datetime_obj.timestamp()
+
+            now_timestmp = time.time()
+            diff_stmp = now_timestmp - mouli_timestmp
+
+
+            if mouli_timestmp > 1730026800:
+                add_hour = 1
+                diff_stmp -= 3600
+            else:
+                add_hour = 2
+                diff_stmp -= 7200
+
+            hour += add_hour
+            if hour == 24:
+                hour = 0
+                dd += 1
+
+            diff_time = display_difference(diff_stmp)
 
 
 
+            yy = yy - 2000
 
-clear()
-display_data_in_normal_print()
+        
+
+            nb = float(percent/10)
+            progress_bar = "▬"
+            for i in range(1, int(nb)):
+                progress_bar += "▬"
+
+
+            if nb < 3:
+                color = RED
+            elif nb >= 7.5:
+                color = GRE
+            else:
+                color = YEL
+
+
+            requis = float(requis)
+            prerequis = ""
+            if requis == 2:
+                if percent != 100:
+                    prerequis = f"{CYN}Pre. Met{NC}"
+                else:
+                    prerequis = f"{GRE}Pre. Met{NC}"
+            if requis == 1.5:
+                prerequis = f"{RED}Crashed{NC}"
+            if requis == 1: 
+                prerequis = f"{RED}No Test.{NC}"
+            if requis == 0.5:
+                prerequis = f"{RED}Deliv. Err.{NC}"
+            if requis == 0.0:
+                prerequis = f"{RED}Ban. Func.{NC}"
+
+
+            print(f"{parts[0]:<{biggest_project}}{diff_time:<12}{prerequis:<25}{percent:<5}% [{color}{progress_bar:<10}{NC}]")
+            print_switch_bar()
+
+    return lines
+
+
+def print_below_info(type, number):
+
+    t = datetime.datetime.now()
+    c_time = t.strftime('%Hh%M.%S')
+
+    print(f"{LGY}",end='')
+    if type == "Rep":
+        print(f"Mode: repetition | {number}/{opt_nb_repetition} | Delay: {opt_time_refreshing}s")
+    if type == "Loop":
+        print(f"Mode: infinite | {number} | Delay: {opt_time_refreshing}s | Time: {c_time}")
+    print(f"{NC}",end='')
+    print_switch_bar
+
+
+def get_actual_data_lines():
+    with open(f"{PATH}/mouli-folder/mouli_data", "r") as f:
+        lines = f.readlines()
+        lines.reverse()
+    return lines
+
+if __name__ == '__main__':
+
+
+    lines = get_actual_data_lines()
+    slen = len(sys.argv)
+
+
+    for i in range(slen):
+        if sys.argv[i] == "-c":
+            opt_compact = 1
+        if sys.argv[i] == "-l":
+            opt_nb_repetition = int(sys.argv[i + 1])
+        if sys.argv[i] == "-d":
+            opt_time_refreshing = int(sys.argv[i + 1])
+
+
+    if (opt_nb_repetition != -1):
+        if (opt_nb_repetition == 0):
+            try:
+                i=0
+                while True:
+                    old = get_actual_data_lines()
+                    get_data()
+                    clear()
+                    if opt_compact:
+                        lines = display_data_compact(old)
+                    else:
+                        lines = display_data_in_normal_print(old)
+                    print_below_info("Loop", i)
+                    time.sleep(opt_time_refreshing)
+                    i+=1
+            except KeyboardInterrupt:
+                print(f"\r{BWH}Exited successfully{NC}")
+            sys.exit(0)
+    
+        for i in range(opt_nb_repetition):
+            try:
+                old = get_actual_data_lines()
+                get_data()
+                clear()
+                if opt_compact:
+                    lines = display_data_compact(old)
+                else:
+                    lines = display_data_in_normal_print(old)
+                print_below_info("Rep", i)
+                time.sleep(opt_time_refreshing)
+                
+            except KeyboardInterrupt:
+                print(f"\r{BWH}Exited successfully{NC}")
+
+    old = get_actual_data_lines()
+    get_data()
+    clear()
+    if opt_compact:
+        lines = display_data_compact(old)
+    else:
+        lines = display_data_in_normal_print(old)
+

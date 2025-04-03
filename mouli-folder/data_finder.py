@@ -37,11 +37,15 @@ def make_request(token, url):
 def fetch_data(token, url):
     while True:
         print(f"Used Token '{token[:10]}...' to fetch data at '{url}'.")
-        request = make_request(token, url)
+
+        try: 
+            request = make_request(token, url)
+        except requests.exceptions.ConnectionError:
+            print("No Connection\nRetrying in 3sec")
+            time.sleep(3)
+            continue
         if request.status_code == 200:
             break
-        print(f"Retrying in 3sec.")
-        time.sleep(3)
         token = reload_token()
         save_token(token)
 

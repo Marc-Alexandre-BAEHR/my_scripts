@@ -1,0 +1,4 @@
+#!/usr/bin/python3
+
+DISCORD_BOT_TOKEN = "YOUR_DISCORD_BOT_TOKEN"
+USER_ID = "YOUR USER ID"
