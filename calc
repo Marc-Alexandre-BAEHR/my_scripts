@@ -5,9 +5,18 @@ slen = len(sys.argv)
 
 valid_separator = ["+", "-", "/", "x"]
 
+for i in range(1, slen):
+    if sys.argv[i] == "-h":
+        print("1: Argument Error")
+        print("2: Invalid Separator")
+        print("3: Division by zero")
+        sys.exit(0)
+
 if slen < 3:
     print(f"Not enough arguments")
     sys.exit(1)
+
+
 
 separator = []
 numbers = []
@@ -52,6 +61,9 @@ for i in range(len(numbers) - 1):
     if separator[i] == 'x':
         result *= numbers[i + 1]
     if separator[i] == '/':
+        if (numbers[i + 1] == 0):
+            print(f"Division by zero")
+            sys.exit(3)
         result /= numbers[i + 1]
 
 print(result)
